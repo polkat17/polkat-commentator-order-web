@@ -1,0 +1,15 @@
+{
+  "name": "polkat-commentator-web",
+  "version": "1.0.0",
+  "description": "Browser-based AI commentator for Polkat Plays — screen-shares your gameplay and speaks funny live commentary, powered by Gemini.",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "vercel": "^37.0.0"
+  }
+}

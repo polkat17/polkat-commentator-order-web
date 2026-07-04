@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<title>Polkat Commentator</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; background: transparent; overflow: hidden;
+    font-family: 'Segoe UI', Arial, sans-serif; height: 100%;
+  }
+
+  #start-screen {
+    background: #1b1023ee;
+    color: #f0e6ff;
+    height: 100vh;
+    box-sizing: border-box;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; text-align: center; padding: 20px;
+  }
+  #start-screen h1 { margin: 0; font-size: 22px; color: #c99bff; }
+  #start-screen p { margin: 0; font-size: 13px; opacity: 0.8; max-width: 420px; }
+  #start-btn {
+    background: #8a3fff; color: white; border: none; border-radius: 10px;
+    padding: 12px 24px; font-size: 15px; cursor: pointer; font-weight: 600;
+  }
+  #start-btn:hover { background: #a561ff; }
+
+  #bubble {
+    display: none;
+    height: 100vh;
+    box-sizing: border-box;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 22px;
+  }
+  #avatar {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #caa1ff, #6b2fbf 70%);
+    box-shadow: 0 0 18px 4px #8a3fff88;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px;
+    transition: transform 0.15s ease;
+  }
+  #avatar.talking { transform: scale(1.08); }
+  #caption {
+    background: #1b1023dd;
+    color: #ffffff;
+    padding: 14px 20px;
+    border-radius: 16px;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.3;
+    max-width: 720px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+  }
+
+  #reopen {
+    position: fixed; top: 4px; right: 6px; font-size: 11px;
+    color: #b58cff; cursor: pointer; opacity: 0.6;
+  }
+  #reopen:hover { opacity: 1; }
+</style>
+</head>
+<body>
+
+  <div id="start-screen">
+    <h1>🐱 Polkat Commentator</h1>
+    <p>Click start, then choose the window/screen showing your gameplay
+       (e.g. your PS5 capture card feed). Keep this tab open and add it to
+       OBS as a Window Capture source.</p>
+    <button id="start-btn">Start watching</button>
+  </div>
+
+  <div id="bubble">
+    <div id="avatar">🐱</div>
+    <div id="caption">Warming up the wizard cat...</div>
+  </div>
+
+  <div id="reopen" style="display:none" title="Change capture source">⚙ change source</div>
+
+  <video id="video" style="display:none"></video>
+  <canvas id="canvas" style="display:none"></canvas>
+
+  <script src="app.js"></script>
+</body>
+</html>
