@@ -43,7 +43,11 @@ module.exports = async function handler(req, res) {
           ],
         },
       ],
-      generationConfig: { temperature: 1.1, maxOutputTokens: 60 },
+      generationConfig: {
+        temperature: 1.1,
+        maxOutputTokens: 100,
+        thinkingConfig: { thinkingBudget: 0 },
+      },
     };
 
     const geminiRes = await fetch(
