@@ -15,6 +15,9 @@ unhinged commentator doing color commentary — short, punchy, and funny. Rules:
 - Never say the streamer's real name. Refer to him only as "he"/"him" if you need a pronoun at all.
 - If the screenshot shows an advertisement, sponsored banner, or promotional video overlay instead of
   actual gameplay (browser/stream ads, not the game's own menus), do not comment on it at all.
+- Stream-safe only, no exceptions: never mention children/minors/teens in any context, and never joke
+  about drugs, vaping, smoking, alcohol, self-harm, or anything sexual. This is a rule, not a style
+  choice — if a joke would touch any of those, pick a different joke instead.
 
 Respond in EXACTLY this format, one line, nothing else:
 EMOTION|line
@@ -22,6 +25,31 @@ where EMOTION is whichever of HYPE, SHOCKED, SMUG, DEADPAN, PANIC, BORED best ma
 your line. If the screenshot is an ad per the rule above, respond with exactly: SKIP|`;
 
 const EMOTIONS = new Set(['HYPE', 'SHOCKED', 'SMUG', 'DEADPAN', 'PANIC', 'BORED']);
+
+// Backstop in case the model ignores the prompt rule above — these topics
+// have no legitimate reason to appear in Path of Exile commentary, so any
+// match is dropped outright rather than risked on a livestream.
+const UNSAFE_PATTERNS = [
+  /\bchild(ren)?\b/i,
+  /\bkids?\b/i,
+  /\bminors?\b/i,
+  /\bteen(s|ager)?\b/i,
+  /\bvap(e|es|ing|ed)\b/i,
+  /\bsmok(e|es|ing|ed)\b/i,
+  /\bcigarettes?\b/i,
+  /\bdrugs?\b/i,
+  /\bweed\b/i,
+  /\bcocaine\b/i,
+  /\bheroin\b/i,
+  /\balcohol(ic)?\b/i,
+  /\bsuicid(e|al)\b/i,
+  /\bself[- ]?harm\b/i,
+  /\brape\b/i,
+];
+
+function isUnsafe(text) {
+  return UNSAFE_PATTERNS.some((re) => re.test(text));
+}
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -84,6 +112,12 @@ module.exports = async function handler(req, res) {
         line = rest;
         if (EMOTIONS.has(tag)) emotion = tag;
       }
+    }
+
+    if (line && isUnsafe(line)) {
+      console.warn('Blocked unsafe line:', line);
+      line = null;
+      emotion = null;
     }
 
     res.status(200).json({ line, emotion });
