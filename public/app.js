@@ -69,7 +69,7 @@ async function captureAndComment() {
     const data = await res.json();
     if (data.line) {
       lastComment = data.line;
-      say(data.line);
+      say(data.line, data.emotion);
     } else if (data.error) {
       console.error('Commentary error:', data.error);
     }
@@ -107,15 +107,38 @@ if ('speechSynthesis' in window) {
   };
 }
 
-function say(text) {
+// Web Speech API can't do real prosody, but varying rate/pitch/volume per
+// line — instead of one flat setting for every comment — is what actually
+// reads as "alive" rather than a monotone narrator. Gemini tags each line
+// with the emotion that fits it; we map that to a distinct voice preset.
+const EMOTION_PRESETS = {
+  HYPE: { rate: 1.25, pitch: 1.3, volume: 1.0 },
+  SHOCKED: { rate: 1.15, pitch: 1.35, volume: 1.0 },
+  PANIC: { rate: 1.35, pitch: 1.25, volume: 1.0 },
+  SMUG: { rate: 0.95, pitch: 1.05, volume: 0.95 },
+  DEADPAN: { rate: 0.9, pitch: 0.85, volume: 0.9 },
+  BORED: { rate: 0.85, pitch: 0.8, volume: 0.85 },
+};
+const DEFAULT_PRESET = { rate: 1.05, pitch: 1.1, volume: 1.0 };
+
+function jitter(value, amount) {
+  return value + (Math.random() * 2 - 1) * amount;
+}
+
+function say(text, emotion) {
   captionEl.textContent = text;
   avatarEl.classList.add('talking');
+
+  const preset = EMOTION_PRESETS[emotion] || DEFAULT_PRESET;
 
   window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
   if (cachedVoice) utter.voice = cachedVoice;
-  utter.rate = 1.0;
-  utter.pitch = 1.1;
+  // Small jitter so back-to-back lines with the same emotion don't sound
+  // like they're on rails.
+  utter.rate = jitter(preset.rate, 0.05);
+  utter.pitch = jitter(preset.pitch, 0.05);
+  utter.volume = preset.volume;
   utter.onend = () => avatarEl.classList.remove('talking');
   window.speechSynthesis.speak(utter);
 }

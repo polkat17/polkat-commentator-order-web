@@ -12,7 +12,16 @@ unhinged commentator doing color commentary — short, punchy, and funny. Rules:
 - Never repeat the same joke structure twice in a row.
 - No emojis, no hashtags, no stage directions — just the spoken line itself.
 - If the screenshot is a menu/loading screen, roast the loading time or make a meta joke about menus.
-- Never say the streamer's real name. Refer to him only as "he"/"him" if you need a pronoun at all.`;
+- Never say the streamer's real name. Refer to him only as "he"/"him" if you need a pronoun at all.
+- If the screenshot shows an advertisement, sponsored banner, or promotional video overlay instead of
+  actual gameplay (browser/stream ads, not the game's own menus), do not comment on it at all.
+
+Respond in EXACTLY this format, one line, nothing else:
+EMOTION|line
+where EMOTION is whichever of HYPE, SHOCKED, SMUG, DEADPAN, PANIC, BORED best matches the energy of
+your line. If the screenshot is an ad per the rule above, respond with exactly: SKIP|`;
+
+const EMOTIONS = new Set(['HYPE', 'SHOCKED', 'SMUG', 'DEADPAN', 'PANIC', 'BORED']);
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -61,9 +70,23 @@ module.exports = async function handler(req, res) {
     );
 
     const data = await geminiRes.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
-    res.status(200).json({ line: text || null });
+    let emotion = null;
+    let line = raw || null;
+    const sep = raw ? raw.indexOf('|') : -1;
+    if (sep !== -1) {
+      const tag = raw.slice(0, sep).trim().toUpperCase();
+      const rest = raw.slice(sep + 1).trim();
+      if (tag === 'SKIP' || !rest) {
+        line = null;
+      } else {
+        line = rest;
+        if (EMOTIONS.has(tag)) emotion = tag;
+      }
+    }
+
+    res.status(200).json({ line, emotion });
   } catch (err) {
     console.error('Gemini request failed:', err);
     res.status(500).json({ error: 'Gemini request failed' });
