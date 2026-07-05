@@ -82,13 +82,21 @@ async function captureAndComment() {
 // (fires 'voiceschanged' async), so we cache the pick and refresh on that event.
 let cachedVoice = null;
 
+// Chrome's network-backed "Google ..." voices sound noticeably more natural
+// than the legacy on-device SAPI voices Windows ships (Microsoft David/Mark/
+// Zira/etc), so try those by name first before falling back to whatever
+// local voice is available (which is the better option on macOS/Linux).
+const PREFERRED_VOICE_NAMES = ['Google UK English Male', 'Google US English'];
+
 function pickVoice() {
   const voices = window.speechSynthesis.getVoices();
   if (!voices.length) return null;
+  for (const name of PREFERRED_VOICE_NAMES) {
+    const match = voices.find((v) => v.name === name);
+    if (match) return match;
+  }
   const english = voices.filter((v) => v.lang.startsWith('en'));
   const pool = english.length ? english : voices;
-  // On-device voices are consistently clearer than the remote/network ones
-  // Chrome also lists, which can sound worse and add latency.
   return pool.find((v) => v.localService) || pool[0];
 }
 
