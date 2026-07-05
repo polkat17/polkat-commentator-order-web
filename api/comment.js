@@ -97,12 +97,15 @@ module.exports = async function handler(req, res) {
       generationConfig: {
         temperature: 1.1,
         maxOutputTokens: 220,
-        thinkingConfig: { thinkingBudget: 0 },
+        // Gemini 3.x replaced the numeric thinkingBudget with a thinkingLevel
+        // enum; "minimal" keeps the token budget going to the actual line
+        // instead of internal reasoning, same intent as thinkingBudget: 0.
+        thinkingConfig: { thinkingLevel: 'minimal' },
       },
     };
 
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
