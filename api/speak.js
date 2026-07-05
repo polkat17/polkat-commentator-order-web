@@ -5,8 +5,8 @@
 // returns real generated audio, replacing the browser's built-in TTS voice.
 
 // Voice Library voices (like "Louis") require a paid ElevenLabs plan to use
-// via the API — free tier only works with premade voices like this one.
-const DEFAULT_VOICE_ID = 'pNInz6obpgDQGcFmaJgB'; // "Adam" — deep, clear, general-purpose
+// via the API — free tier only works with premade/default voices like this one.
+const DEFAULT_VOICE_ID = 'TX3LPaxmHKxFdv7VOQHJ';
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
