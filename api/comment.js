@@ -30,14 +30,14 @@ You are given a single screenshot of the current game moment. Rules:
   about drugs, vaping, smoking, alcohol, self-harm, or anything sexual. This is a rule, not a style
   choice — if a joke would touch any of those, pick a different joke instead. Edgy means blunt and sharp,
   not those topics.
+- Your line is read aloud by a text-to-speech voice that understands inline delivery tags like
+  [excited], [deadpan], [sighs], [pause], [laughs], [whispers], [scoffs], [angry]. Use a tag whenever
+  the delivery should shift partway through the line — e.g. hyped for the setup, dry for the punchline —
+  instead of one flat tone for the whole thing. Use them sparingly and only where they add something;
+  don't tag every clause.
 
-Respond in EXACTLY this format, nothing else:
-EMOTION|line
-where EMOTION is whichever of HYPE, SHOCKED, SMUG, DEADPAN, PANIC, BORED best matches the energy of
-your line, and "line" may be one line or, occasionally, 2-3 sentences per the rule above. If the
-screenshot is an ad per the rule above, respond with exactly: SKIP|`;
-
-const EMOTIONS = new Set(['HYPE', 'SHOCKED', 'SMUG', 'DEADPAN', 'PANIC', 'BORED']);
+Respond with nothing but the line itself (inline tags included where useful) — no quotes, no prefix,
+no explanation. If the screenshot is an ad per the rule above, respond with exactly: SKIP`;
 
 // Backstop in case the model ignores the prompt rule above — these topics
 // have no legitimate reason to appear in Path of Exile commentary, so any
@@ -113,27 +113,18 @@ module.exports = async function handler(req, res) {
     const data = await geminiRes.json();
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
-    let emotion = null;
-    let line = raw || null;
-    const sep = raw ? raw.indexOf('|') : -1;
-    if (sep !== -1) {
-      const tag = raw.slice(0, sep).trim().toUpperCase();
-      const rest = raw.slice(sep + 1).trim();
-      if (tag === 'SKIP' || !rest) {
-        line = null;
-      } else {
-        line = rest;
-        if (EMOTIONS.has(tag)) emotion = tag;
-      }
-    }
+    // spokenText keeps inline delivery tags like [excited] for the TTS call;
+    // line strips them for the on-screen caption and safety check.
+    let spokenText = raw && !/^skip\b/i.test(raw) ? raw : null;
+    let line = spokenText ? spokenText.replace(/\[[a-z ]+\]/gi, ' ').replace(/\s+/g, ' ').trim() : null;
 
     if (line && isUnsafe(line)) {
       console.warn('Blocked unsafe line:', line);
       line = null;
-      emotion = null;
+      spokenText = null;
     }
 
-    res.status(200).json({ line, emotion });
+    res.status(200).json({ line, spokenText });
   } catch (err) {
     console.error('Gemini request failed:', err);
     res.status(500).json({ error: 'Gemini request failed' });

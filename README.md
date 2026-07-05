@@ -14,29 +14,30 @@ packaging/relaunching to test changes.
 polkat-commentator-web/
 ├── public/
 │   ├── index.html      overlay UI (start button, caption bubble, avatar)
-│   └── app.js           screen capture, TTS, calls the API
+│   └── app.js           screen capture, plays TTS audio, calls the API
 ├── api/
-│   └── comment.js       serverless function — holds the Gemini key, proxies requests
+│   ├── comment.js       serverless function — holds the Gemini key, generates the line
+│   └── speak.js          serverless function — holds the ElevenLabs key, returns audio
 ├── package.json
 ├── .env.example
 └── .gitignore
 ```
 
 The split matters: `public/app.js` runs in the browser and is visible to anyone
-who opens devtools, so the Gemini API key must never live there. `api/comment.js`
-runs server-side (as a Vercel serverless function) and is the only place that
-touches the key.
+who opens devtools, so API keys must never live there. `api/comment.js` and
+`api/speak.js` run server-side (as Vercel serverless functions) and are the
+only places that touch the Gemini and ElevenLabs keys respectively.
 
 ## Local development
 
 ```bash
 npm install
-cp .env.example .env   # add your Gemini key
+cp .env.example .env   # add your Gemini and ElevenLabs keys
 npx vercel dev
 ```
 
-This serves the site at `http://localhost:3000` with `/api/comment` working
-locally exactly as it will in production.
+This serves the site at `http://localhost:3000` with `/api/comment` and
+`/api/speak` working locally exactly as they will in production.
 
 ## Deploying
 
@@ -47,11 +48,12 @@ npx vercel
 ```
 
 Then in the Vercel dashboard for the project: **Settings → Environment Variables**
-→ add `GEMINI_API_KEY`. Redeploy after adding it.
+→ add `GEMINI_API_KEY`, `ELEVENLABS_API_KEY`, and optionally `ELEVENLABS_VOICE_ID`.
+Redeploy after adding them.
 
-Any other host that supports a Node serverless function would work too — the
-`api/comment.js` handler is plain Node with no Vercel-specific APIs, so porting
-it to Netlify Functions or similar is a small adaptation, not a rewrite.
+Any other host that supports a Node serverless function would work too — both
+handlers are plain Node with no Vercel-specific APIs, so porting them to
+Netlify Functions or similar is a small adaptation, not a rewrite.
 
 ## Using it while streaming
 
@@ -61,9 +63,10 @@ it to Netlify Functions or similar is a small adaptation, not a rewrite.
    is transparent except for the avatar/caption bubble, so it composites over
    your gameplay.
 3. Audio: same as before — either let OBS pick up your desktop audio (which
-   now includes the TTS voice), or route TTS through a virtual audio cable /
-   hardware mixer if you're on PS5-native broadcast (no OBS in the loop). See
-   earlier notes on that if needed — worth revisiting once this is working.
+   now includes the ElevenLabs voice), or route it through a virtual audio
+   cable / hardware mixer if you're on PS5-native broadcast (no OBS in the
+   loop). See earlier notes on that if needed — worth revisiting once this
+   is working.
 
 ## Continuing development in Claude Code
 
@@ -81,8 +84,8 @@ directly with Claude Code. A few pointers for that session:
   - Event-triggered capture (cheap local pixel/color checks for health-bar
     drops, death screens, loot flashes) instead of a blind fixed timer —
     call `captureAndComment()` on trigger instead of only via `setInterval`.
-  - Swapping `speechSynthesis` for a nicer TTS voice (e.g. ElevenLabs) —
-    would mean adding a second API route that returns audio instead of text,
-    and playing it via an `<audio>` element instead of the Web Speech API.
+  - Trying a different ElevenLabs voice: change `ELEVENLABS_VOICE_ID`, no
+    code changes needed.
 - No secrets are committed — `.env` is gitignored. Claude Code will need its
-  own copy of `GEMINI_API_KEY` in `.env` for local testing.
+  own copies of `GEMINI_API_KEY` and `ELEVENLABS_API_KEY` in `.env` for local
+  testing.

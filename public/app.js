@@ -69,7 +69,7 @@ async function captureAndComment() {
     const data = await res.json();
     if (data.line) {
       lastComment = data.line;
-      say(data.line, data.emotion);
+      speak(data.spokenText || data.line, data.line);
     } else if (data.error) {
       console.error('Commentary error:', data.error);
     }
@@ -78,69 +78,41 @@ async function captureAndComment() {
   }
 }
 
-// getVoices() returns an empty list until the browser finishes loading them
-// (fires 'voiceschanged' async), so we cache the pick and refresh on that event.
-let cachedVoice = null;
+// Real generated audio from /api/speak (ElevenLabs) instead of the browser's
+// built-in speechSynthesis voice — actual pauses and mid-line emotion shifts
+// come from delivery tags Gemini embeds in spokenText (e.g. "[deadpan] ...
+// [smug] ..."), which the TTS model renders directly into the audio.
+let currentAudio = null;
 
-// Chrome's network-backed "Google ..." voices sound noticeably more natural
-// than the legacy on-device SAPI voices Windows ships (Microsoft David/Mark/
-// Zira/etc), so try those by name first before falling back to whatever
-// local voice is available (which is the better option on macOS/Linux).
-const PREFERRED_VOICE_NAMES = ['Google UK English Male', 'Google US English'];
-
-function pickVoice() {
-  const voices = window.speechSynthesis.getVoices();
-  if (!voices.length) return null;
-  for (const name of PREFERRED_VOICE_NAMES) {
-    const match = voices.find((v) => v.name === name);
-    if (match) return match;
-  }
-  const english = voices.filter((v) => v.lang.startsWith('en'));
-  const pool = english.length ? english : voices;
-  return pool.find((v) => v.localService) || pool[0];
-}
-
-if ('speechSynthesis' in window) {
-  cachedVoice = pickVoice();
-  window.speechSynthesis.onvoiceschanged = () => {
-    cachedVoice = pickVoice();
-  };
-}
-
-// Web Speech API can't do real prosody, but varying rate/pitch/volume per
-// line — instead of one flat setting for every comment — is what actually
-// reads as "alive" rather than a monotone narrator. Gemini tags each line
-// with the emotion that fits it; we map that to a distinct voice preset.
-const EMOTION_PRESETS = {
-  HYPE: { rate: 1.25, pitch: 1.3, volume: 1.0 },
-  SHOCKED: { rate: 1.15, pitch: 1.35, volume: 1.0 },
-  PANIC: { rate: 1.35, pitch: 1.25, volume: 1.0 },
-  SMUG: { rate: 0.95, pitch: 1.05, volume: 0.95 },
-  DEADPAN: { rate: 0.9, pitch: 0.85, volume: 0.9 },
-  BORED: { rate: 0.85, pitch: 0.8, volume: 0.85 },
-};
-const DEFAULT_PRESET = { rate: 1.05, pitch: 1.1, volume: 1.0 };
-
-function jitter(value, amount) {
-  return value + (Math.random() * 2 - 1) * amount;
-}
-
-function say(text, emotion) {
-  captionEl.textContent = text;
+async function speak(spokenText, captionText) {
+  captionEl.textContent = captionText;
   avatarEl.classList.add('talking');
 
-  const preset = EMOTION_PRESETS[emotion] || DEFAULT_PRESET;
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
 
-  window.speechSynthesis.cancel();
-  const utter = new SpeechSynthesisUtterance(text);
-  if (cachedVoice) utter.voice = cachedVoice;
-  // Small jitter so back-to-back lines with the same emotion don't sound
-  // like they're on rails.
-  utter.rate = jitter(preset.rate, 0.05);
-  utter.pitch = jitter(preset.pitch, 0.05);
-  utter.volume = preset.volume;
-  utter.onend = () => avatarEl.classList.remove('talking');
-  window.speechSynthesis.speak(utter);
+  try {
+    const res = await fetch('/api/speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: spokenText }),
+    });
+    if (!res.ok) throw new Error(`speak request failed: ${res.status}`);
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    currentAudio = new Audio(url);
+    currentAudio.addEventListener('ended', () => {
+      avatarEl.classList.remove('talking');
+      URL.revokeObjectURL(url);
+    });
+    await currentAudio.play();
+  } catch (err) {
+    console.error('TTS playback failed:', err);
+    avatarEl.classList.remove('talking');
+  }
 }
 
 startBtn.addEventListener('click', startCapture);
