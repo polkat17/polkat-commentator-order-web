@@ -1,8 +1,9 @@
 {
-  "name": "polkat-commentator-web",
+  "name": "ai-stream-commentator",
   "version": "1.0.0",
-  "description": "Browser-based AI commentator for Polkat Plays — screen-shares your gameplay and speaks funny live commentary, powered by Gemini.",
-  "private": true,
+  "description": "Browser-based AI game commentator — screen-shares your gameplay and speaks funny live commentary, powered by Gemini and ElevenLabs. Ships configured for Path of Exile 2 as an example; edit a few constants to point it at any game.",
+  "license": "MIT",
+  "private": false,
   "scripts": {
     "dev": "vercel dev"
   },
