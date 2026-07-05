@@ -78,14 +78,36 @@ async function captureAndComment() {
   }
 }
 
+// getVoices() returns an empty list until the browser finishes loading them
+// (fires 'voiceschanged' async), so we cache the pick and refresh on that event.
+let cachedVoice = null;
+
+function pickVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+  const english = voices.filter((v) => v.lang.startsWith('en'));
+  const pool = english.length ? english : voices;
+  // On-device voices are consistently clearer than the remote/network ones
+  // Chrome also lists, which can sound worse and add latency.
+  return pool.find((v) => v.localService) || pool[0];
+}
+
+if ('speechSynthesis' in window) {
+  cachedVoice = pickVoice();
+  window.speechSynthesis.onvoiceschanged = () => {
+    cachedVoice = pickVoice();
+  };
+}
+
 function say(text) {
   captionEl.textContent = text;
   avatarEl.classList.add('talking');
 
   window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
-  utter.rate = 1.05;
-  utter.pitch = 1.3;
+  if (cachedVoice) utter.voice = cachedVoice;
+  utter.rate = 1.0;
+  utter.pitch = 1.1;
   utter.onend = () => avatarEl.classList.remove('talking');
   window.speechSynthesis.speak(utter);
 }
