@@ -4,7 +4,7 @@
 // Takes the commentary line (with inline delivery tags like [excited]) and
 // returns real generated audio, replacing the browser's built-in TTS voice.
 
-const DEFAULT_VOICE_ID = 'pNInz6obpgDQGcFmaJgB'; // "Adam" — deep, clear, general-purpose
+const DEFAULT_VOICE_ID = 'b5Ggo9o15QPFEkYe1Mui'; // "Louis" — informal, authentic, kind
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
